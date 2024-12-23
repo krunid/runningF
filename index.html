@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>🏃‍♂️ มหกรรมผลไม้วิ่งแข่ง 🏃‍♂️</title>
+    <style>
+        .container {
+            padding: 20px;
+            background: #fff;
+            position: relative;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #FF6B6B, #FFD93D);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+        .track {
+            height: 50px;
+            background: #f5f5f5;
+            margin-bottom: 10px;
+            position: relative;
+            border-radius: 5px;
+        }
+        .runner {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            transition: left 0.5s ease;
+        }
+        .flag {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+            margin-top: 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(90deg, #4CAF50, #45B649);
+            color: white;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:disabled {
+            background: #ccc;
+        }
+
+        .countdown-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .countdown-number {
+            font-size: 150px;
+            color: white;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            animation: countdownPulse 1s ease-in-out;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .result-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: linear-gradient(90deg, #f5f5f5, #fff);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 20px;
+        }
+        @keyframes countdownPulse {
+            0% { transform: scale(2); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="game-title">🏆 มหกรรมผลไม้วิ่งแข่ง</div>
+            <div class="timer">0.0 วินาที</div>
+        </div>
+
+        <div class="track">
+            <div class="runner" style="left: 0">🍎</div>
+            <div class="flag">🏁</div>
+        </div>
+        <div class="track">
+            <div class="runner" style="left: 0">🍊</div>
+            <div class="flag">🏁</div>
+        </div>
+        <div class="track">
+            <div class="runner" style="left: 0">🍌</div>
+            <div class="flag">🏁</div>
+        </div>
+        <div class="track">
+            <div class="runner" style="left: 0">🍇</div>
+            <div class="flag">🏁</div>
+        </div>
+        <div class="track">
+            <div class="runner" style="left: 0">🍉</div>
+            <div class="flag">🏁</div>
+        </div>
+
+        <button onclick="startCountdown()">🚀 เริ่มการแข่งขัน!</button>
+    </div>
+
+    <!-- การนับถอยหลัง -->
+    <div class="countdown-overlay" id="countdownOverlay">
+        <div class="countdown-number" id="countdownNumber"></div>
+    </div>
+
+    <!-- ผลการแข่งขัน -->
+    <div id="resultsModal" class="modal">
+        <div class="modal-content">
+            <h2 style="text-align: center; font-size: 24px;">🏆 ผลการแข่งขัน 🏆</h2>
+            <div id="results"></div>
+            <button onclick="closeResults()" style="margin-top: 20px;">ปิด</button>
+        </div>
+    </div>
+
+    <script>
+        let runners = document.querySelectorAll('.runner');
+        let timer = document.querySelector('.timer');
+        let button = document.querySelector('button');
+        let countdownOverlay = document.getElementById('countdownOverlay');
+        let countdownNumber = document.getElementById('countdownNumber');
+        let positions = [0, 0, 0, 0, 0];
+        let rankings = [];
+        let time = 0;
+        let raceInterval;
+        let timerInterval;
+
+        function resetRunners() {
+            runners.forEach((runner, index) => {
+                runner.style.transition = 'left 0.5s ease';
+                runner.style.left = '0%';
+                positions[index] = 0;
+            });
+            rankings = [];
+        }
+
+        function startCountdown() {
+            let count = 3;
+            button.disabled = true;
+            resetRunners();
+            countdownOverlay.style.display = 'flex';
+            
+            const countdown = setInterval(() => {
+                if (count > 0) {
+                    countdownNumber.textContent = count;
+                    countdownNumber.style.animation = 'none';
+                    countdownNumber.offsetHeight;
+                    countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
+                    count--;
+                } else {
+                    countdownNumber.textContent = 'ไป!';
+                    countdownNumber.style.color = '#4CAF50';
+                    setTimeout(() => {
+                        countdownOverlay.style.display = 'none';
+                        startRace();
+                    }, 1000);
+                    clearInterval(countdown);
+                }
+            }, 1000);
+        }
+
+        function startRace() {
+            positions = [0, 0, 0, 0, 0];
+            rankings = [];
+            time = 0;
+
+            runners.forEach(runner => {
+                runner.style.transition = 'left 0.1s linear';
+            });
+
+            timerInterval = setInterval(() => {
+                time += 0.1;
+                timer.textContent = time.toFixed(1) + ' วินาที';
+            }, 100);
+
+            raceInterval = setInterval(() => {
+                let allFinished = true;
+                
+                positions = positions.map((pos, index) => {
+                    if (pos >= 100) return pos;
+                    
+                    let newPos = pos + Math.random() * 2;
+                    if (newPos >= 100) {
+                        newPos = 100;
+                        if (!rankings.includes(index)) {
+                            rankings.push(index);
+                        }
+                    } else {
+                        allFinished = false;
+                    }
+                    
+                    runners[index].style.left = newPos + '%';
+                    return newPos;
+                });
+
+                if (allFinished) {
+                    clearInterval(raceInterval);
+                    clearInterval(timerInterval);
+                    button.disabled = false;
+                    showResults();
+                }
+            }, 50);
+        }
+
+        function showResults() {
+            let fruits = ['🍎', '🍊', '🍌', '🍇', '🍉'];
+            let medals = ['🥇', '🥈', '🥉'];
+            let resultsHTML = '';
+
+            rankings.forEach((runnerIndex, index) => {
+                let medal = medals[index] || (index + 1);
+                resultsHTML += `
+                    <div class="result-item">
+                        <span>${medal}</span>
+                        <span>${fruits[runnerIndex]}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('results').innerHTML = resultsHTML;
+            document.getElementById('resultsModal').style.display = 'block';
+        }
+
+        function closeResults() {
+            document.getElementById('resultsModal').style.display = 'none';
+        }
+
+        resetRunners();
+    </script>
+</body>
+</html>
